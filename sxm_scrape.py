@@ -13,7 +13,7 @@ driver.implicitly_wait(10)
 
 #Set sites to scrape
 BPM = 1
-ELECTRIC_AREA = 1
+ELECTRIC_AREA = 0
 CLUB_LIFE = 0
 
 
@@ -30,7 +30,7 @@ def set_channels():
     if BPM == 1:
         channels.append("BPM")
         urls.append("http://www.siriusxm.com/bpm")
-        history_paths.append(r"c:\users\mringqui\desktop\bpm_history.dat")
+        history_paths.append(r"..\..\bpm_history.dat")
     if ELECTRIC_AREA == 1:
         channels.append("Electric Area")
         urls.append("http://www.siriusxm.com/electricarea")
@@ -70,7 +70,7 @@ def open_history(url, path):
         soup = get_html(url)
         song = extract_song(soup)
         if song is not None:
-            history = pd.DataFrame(song, columns = ["Artist", "Title", "Album Art URL", "Date", "Time"], index = [0])
+            history = pd.DataFrame(song, columns = ["Artist", "Title", "Album Art URL", "Date First Played", "Date Last Played", "Time Last Played", "Total Plays"], index = [0])
             history.to_csv(path)
             print("Table Created @", path)
             return history;
@@ -85,9 +85,18 @@ def add_song(history_table,url,path):
     rows = len(history_table.index) 
     if song is not None:
         if not(song["Title"] == history_table["Title"][rows-1]):
-            history_table = history_table.append(song, ignore_index = True)
+            artist_match = history_table[history_table["Artist"] == song["Artist"]]
+            title_match = artist_match[artist_match["Title"] == song["Title"]] 
+            if len(title_match.index.values > 0):
+                history_table.loc[title_match.index.values]["Total Plays"] += 1
+                history_table.loc[title_match.index.values]["Date Last PLayed"] = song["Date"]
+                history_table.loc[title_match.index.values]["Time Last PLayed"] = song["Time"]
+                print("Song Repeated!")
+            else:
+                new_row = {"Artist":song["Artist"], "Title":song["Title"], "Album Art URL":song["Album Art Url"], "Date First Played":song["Date"], "Date Last Played":song["Date"], "Time Last Played":song["Time"], "Total Plays":1}
+                history_table = history_table.append(new_row, ignore_index = True)
+                print("New Song Played!")
             history_table.to_csv(path)
-            print("Row Added")
     return history_table
 
     
@@ -104,7 +113,7 @@ def main():
                 print("\nChecking", channels[i], flush=True)
                 history[i] = add_song(history[i],urls[i],history_paths[i])
                 print(channels[i], "checked at", time.strftime("%H:%M:%S"), flush=True)
-            time.sleep(120)
+            time.sleep(20)
     except KeyboardInterrupt:
         print('Excecution ended by user.', flush=True)
         driver.quit()
