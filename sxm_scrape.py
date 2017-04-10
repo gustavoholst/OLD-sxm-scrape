@@ -102,7 +102,7 @@ def add_song(history_table,url,path, prev_song):
 def main():
     history = []
     channels, urls, history_paths = set_channels()
-    prev_song = {"Artist":"", "Title":"", "Album Art URL":"", "Date":"", "Time":""}
+    prev_song = {"Artist":"", "Title":"", "Album Art URL":"", "Date":"", "Time":""} ##TODO: Set prev_song based on most recent value in table
     for channel,url,path in zip(channels,urls,history_paths):
         history.append(open_history(channel,url, path))
     
