@@ -33,7 +33,7 @@ def set_channels():
         history_paths.append(r"..\..\bpm_history.dat")
     if ELECTRIC_AREA == 1:
         channels.append("Electric Area")
-        urls.append("http://www.siriusxm.com/electricareaa")
+        urls.append("http://www.siriusxm.com/electricarea")
         history_paths.append(r"..\..\electric_area_history.dat")
     if CLUB_LIFE == 1:
         channels.append("Tiësto's Club Life")
@@ -67,24 +67,12 @@ def open_history(channel,url, path):
         print(channel, "table toaded from", path)
         return history;
     else:
-        for x in range(1,6):
-            soup = get_html(url)
-            song = extract_song(soup)
-            if song is not None:
-                new_row = {"Artist":song["Artist"], "Title":song["Title"], "Album Art URL":song["Album Art URL"], "Date First Played":song["Date"], "Date Last Played":song["Date"], "Time Last Played":song["Time"], "Total Plays":1}
-                history = pd.DataFrame(new_row, columns = ["Artist", "Title", "Album Art URL", "Date First Played", "Date Last Played", "Time Last Played", "Total Plays"], index = [0])
-                history.to_csv(path)
-                print(channel, "table created @", path)
-                break
-            else:
-                print("Cannot scrape" , channel, "(attempt", x, ")")
-        
-        try:
-            return history;
-        except:
-            
-            return;
-            
+        history = pd.DataFrame(data=None, columns = ["Artist", "Title", "Album Art URL", "Date First Played", "Date Last Played", "Time Last Played", "Total Plays"], index = None)
+        history.to_csv(path)
+        print("Blank", channel, "table created @", path)
+        return history;
+
+
 def add_song(history_table,url,path, prev_song):
     soup = get_html(url)
     song = extract_song(soup)
