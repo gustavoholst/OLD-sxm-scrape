@@ -70,7 +70,8 @@ def open_history(url, path):
         soup = get_html(url)
         song = extract_song(soup)
         if song is not None:
-            history = pd.DataFrame(song, columns = ["Artist", "Title", "Album Art URL", "Date First Played", "Date Last Played", "Time Last Played", "Total Plays"], index = [0])
+            new_row = {"Artist":song["Artist"], "Title":song["Title"], "Album Art URL":song["Album Art URL"], "Date First Played":song["Date"], "Date Last Played":song["Date"], "Time Last Played":song["Time"], "Total Plays":1}
+            history = pd.DataFrame(new_row, columns = ["Artist", "Title", "Album Art URL", "Date First Played", "Date Last Played", "Time Last Played", "Total Plays"], index = [0])
             history.to_csv(path)
             print("Table Created @", path)
             return history;
@@ -79,31 +80,36 @@ def open_history(url, path):
             return;
 
             
-def add_song(history_table,url,path):
+def add_song(history_table,url,path, prev_song):
     soup = get_html(url)
     song = extract_song(soup)
     rows = len(history_table.index) 
     if song is not None:
-        if not(song["Title"] == history_table["Title"][rows-1]):
+        if song["Title"] == prev_song["Title"]:
+            print("Song already logged!")
+        else:    
+            prev_song = song
             artist_match = history_table[history_table["Artist"] == song["Artist"]]
             title_match = artist_match[artist_match["Title"] == song["Title"]] 
             if len(title_match.index.values > 0):
-                history_table.loc[title_match.index.values]["Total Plays"] += 1
-                history_table.loc[title_match.index.values]["Date Last PLayed"] = song["Date"]
-                history_table.loc[title_match.index.values]["Time Last PLayed"] = song["Time"]
+                history_table.set_value(title_match.index.values,"Total Plays",history_table.loc[title_match.index.values]["Total Plays"] + 1)
+                history_table.set_value(title_match.index.values,"Date Last Played", song["Date"])
+                history_table.set_value(title_match.index.values,"Time Last Played", song["Time"])
                 print("Song Repeated!")
             else:
-                new_row = {"Artist":song["Artist"], "Title":song["Title"], "Album Art URL":song["Album Art Url"], "Date First Played":song["Date"], "Date Last Played":song["Date"], "Time Last Played":song["Time"], "Total Plays":1}
+                new_row = {"Artist":song["Artist"], "Title":song["Title"], "Album Art URL":song["Album Art URL"], "Date First Played":song["Date"], "Date Last Played":song["Date"], "Time Last Played":song["Time"], "Total Plays":1}
                 history_table = history_table.append(new_row, ignore_index = True)
+                history_table = history_table.sort_values("Artist", ascending=1)
+                history_table.reset_index(inplace = True, drop = True)
                 print("New Song Played!")
             history_table.to_csv(path)
-    return history_table
+    return history_table, prev_song
 
     
 def main():
     history = []
     channels, urls, history_paths = set_channels()
-    
+    prev_song = {"Artist":"", "Title":"", "Album Art URL":"", "Date":"", "Time":""}
     for url,path in zip(urls,history_paths):
         history.append(open_history(url, path))
     
@@ -111,7 +117,7 @@ def main():
         while True:
             for i in range(len(history)):
                 print("\nChecking", channels[i], flush=True)
-                history[i] = add_song(history[i],urls[i],history_paths[i])
+                history[i], prev_song = add_song(history[i],urls[i],history_paths[i], prev_song)
                 print(channels[i], "checked at", time.strftime("%H:%M:%S"), flush=True)
             time.sleep(20)
     except KeyboardInterrupt:
