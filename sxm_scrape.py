@@ -42,21 +42,23 @@ def set_channels():
     return channels, urls, history_paths
     
     
-def extract_song (soup): #Get current song title, artist, and albumart from siriusxm website
+def get_song (url): #Get current song title, artist, and albumart from siriusxm website
     song = {}
     song["datetime"] = datetime.now()
-#    song["Time"] = time.strftime("%H:%M:%S")
-    try:
-        song["Title"] = soup.find_all(class_="onair-pdt-song")[0].contents[0]
-        song["Artist"] = soup.find_all(class_="onair-pdt-artist")[0].contents[0]
-        for pic in soup.findAll('img'):
-            if pic.parent.get('id') == 'onair-pdt':
-                song["Album Art URL"] = pic.get('src')
-        print("Currently playing: ", song["Title"], " by ", song["Artist"])
-        return song
-    except IndexError:
-        print("Could not get song...")
-        return;
+    soup = get_html(url)
+    for x in range(1,4):
+        try:
+            song["Title"] = soup.find_all(class_="onair-pdt-song")[0].contents[0]
+            song["Artist"] = soup.find_all(class_="onair-pdt-artist")[0].contents[0]
+            for pic in soup.findAll('img'):
+                if pic.parent.get('id') == 'onair-pdt':
+                    song["Album Art URL"] = pic.get('src')
+            print("Currently playing: ", song["Title"], " by ", song["Artist"])
+            return song
+        except IndexError:
+            print("Attempt[{}]: Could not get song... Retrying.".format(x))
+            soup = get_html(url)
+    return;
 
     
 def open_history(channel,url, path): 
@@ -74,8 +76,7 @@ def open_history(channel,url, path):
 
 
 def add_song(history_table,channel,url,path, prev_song):
-    soup = get_html(url)
-    song = extract_song(soup)
+    song = get_song(url)
     rows = len(history_table.index) 
     if song is not None:
         if song["Title"] == prev_song[channel]["Title"]:
