@@ -95,7 +95,6 @@ def add_song(history_table,channel,url,path, prev_song):
                 history_table.reset_index(inplace = True, drop = True)
                 print("New Song Played!")
             history_table.to_csv(path)
-            print(history_table.dtypes)
     return history_table, prev_song
 
     
