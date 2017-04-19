@@ -1,0 +1,8 @@
+Statistics:
+    - # of plays
+    - plays per day
+    - age (time since first play)
+    - time since last play
+    - rate of change of plays/day
+may need to go back to recording every instance of a song being played
+in the recording script, can also generate a summary table for each channel which is then loaded by the webpage

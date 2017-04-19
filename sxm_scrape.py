@@ -1,7 +1,7 @@
 from bs4 import BeautifulSoup
 from selenium import webdriver
 from pathlib import Path
-from datetime import datetime
+##from datetime import datetime
 
 import pandas as pd
 import sched
@@ -44,7 +44,7 @@ def set_channels():
     
 def get_song (url): #Get current song title, artist, and albumart from siriusxm website
     song = {}
-    song["datetime"] = datetime.now()
+    song["time"] = time.time()
     soup = get_html(url)
     for x in range(1,4):
         try:
@@ -65,11 +65,18 @@ def open_history(channel,url, path):
     test_path = Path(path)
     
     if test_path.is_file():
-        history = pd.read_csv(path,index_col=0,parse_dates=["First Played", "Last Played"], dtype={"Total Plays": int})
+        history = pd.read_csv(path,index_col=0, dtype={"Total Plays": int})
         print(channel, "table loaded from", path)
         return history;
     else:
-        history = pd.DataFrame(data=None, columns = ["Artist", "Title", "Album Art URL", "First Played", "Last Played", "Total Plays"], index = None)
+        history = pd.DataFrame(data=None, columns = ["Artist", 
+            "Title", 
+            "Album Art URL", 
+            "First Played", 
+            "Last Played", 
+            "Total Plays",
+            "Frequency",
+            "Trend"], index = None)
         history.to_csv(path)
         print("Blank", channel, "table created @", path)
         return history;
@@ -87,10 +94,30 @@ def add_song(history_table,channel,url,path, prev_song):
             title_match = artist_match[artist_match["Title"] == song["Title"]] 
             if len(title_match.index.values > 0):
                 history_table.set_value(title_match.index.values,"Total Plays",history_table.loc[title_match.index.values]["Total Plays"] + 1)
-                history_table.set_value(title_match.index.values,"Last Played", song["datetime"])
+                history_table.set_value(title_match.index.values,"Last Played", song["time"])
+                old_freq = history_table.loc[title_match.index.values]["Frequency"].values[0]
+                age = song["time"] - history_table.loc[title_match.index.values]["First Played"].values[0]
+                new_freq = history_table.loc[title_match.index.values]["Total Plays"].values[0]/round(age)
+                history_table.set_value(title_match.index.values,"Frequency", new_freq)
+                print("old:",old_freq,"new:",new_freq)
+                if new_freq > old_freq:
+                    trend="Up"
+                elif new_freq < old_freq:
+                    trend="Down"
+                else:
+                    trend="Neutral"
+                history_table.set_value(title_match.index.values,"Trend", trend)
                 print("Song Repeated!")
             else:
-                new_row = {"Artist":song["Artist"], "Title":song["Title"], "Album Art URL":song["Album Art URL"], "First Played":song["datetime"], "Last Played":song["datetime"], "Total Plays":int(1)}
+                new_row = {"Artist":song["Artist"], 
+                    "Title":song["Title"], 
+                    "Album Art URL":song["Album Art URL"], 
+                    "First Played":song["time"], 
+                    "Last Played":song["time"], 
+                    "Total Plays":int(1),
+                    "Frequency":int(1),
+                    "Trend":"New",
+                    }
                 history_table = history_table.append(new_row, ignore_index = True)
                 history_table = history_table.sort_values("Artist", ascending=1)
                 history_table.reset_index(inplace = True, drop = True)
@@ -104,7 +131,7 @@ def main():
     channels, urls, history_paths = set_channels()
     prev_song={}
     for channel,url,path in zip(channels,urls,history_paths):
-        prev_song[channel] = {"Artist":None, "Title":None, "Album Art URL":None, "datetime":None}##TODO: Set prev_song based on most recent value in table
+        prev_song[channel] = {"Artist":None, "Title":None, "Album Art URL":None, "time":None}##TODO: Set prev_song based on most recent value in table
         history.append(open_history(channel,url, path))
     
     try:
